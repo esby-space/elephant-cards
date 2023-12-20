@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>esby is confused</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script src="https://unpkg.com/htmx.org@1.9.9"></script>
+    <script src="https://cdn.twind.style" crossorigin></script>
+</head>
+
+<body class="min-h-screen grid place-content-center gap-8">
+    <h1 class="text-3xl text-center font-bold">elephant cards</h1>
+
+    <div class="grid gap-2">
+        <h2 class="text-xl text-center font-bold">create new card</h2>
+        <form hx-post="/cards" hx-target="#cards" hx-swap="beforeend" class="grid grid-cols-3 gap-2 max-w-max mx-auto">
+            <label for="front" class="text-right">front text</label>
+            <input id="front" type="text" name="front" class="col-span-2 p-1 border rounded">
+            <label for="back" class="text-right">back</label>
+            <input id="black" type="text" name="back" class="col-span-2 p-1 border rounded">
+            <button class="col-start-2 p-1 bg-black text-white rounded">create!</button>
+        </form>
+    </div>
+
+    <div class="grid gap-2">
+        <h2 class="pb-2 text-xl text-center font-bold">cards</h2>
+        <div hx-get="/cards" hx-swap="innerHTML" hx-trigger="load">loading cards...</div>
+    </div>
+</body>
+
+</html>
