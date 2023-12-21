@@ -40,8 +40,8 @@ async fn main() {
     let app = Router::new()
         .nest_service("/", ServeDir::new("assets"))
         .route("/cards", get(cards).post(create_card))
-        .route("/card/:id", get(card).delete(delete_card).put(edit_card))
-        .route("/card/:id/edit", get(edit_card_menu))
+        .route("/cards/:id", get(card).delete(delete_card).put(edit_card))
+        .route("/cards/:id/edit", get(edit_card_menu))
         .with_state(initial_cards);
 
     let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
