@@ -1,8 +1,8 @@
-<h1 class="text-3xl text-center font-bold">elephant cards</h1>
+<h1 class="text-3xl text-center font-bold">{{ deck.name }}</h1>
 
 <div class="grid gap-2">
     <h2 class="text-xl text-center font-bold">create new card</h2>
-    <form hx-post="/cards" hx-target="#cards" hx-swap="beforeend" hx-on::after-request="this.reset()"
+    <form hx-post='{{ "/decks/{}/cards"|format(deck.id) }}' hx-target="#cards" hx-swap="beforeend" hx-on::after-request="this.reset()"
         class="grid grid-cols-3 gap-2 max-w-max mx-auto">
         <label for="front" class="text-right">front text</label>
         <input id="front" type="text" name="front" class="col-span-2 p-1 border rounded">
@@ -14,5 +14,8 @@
 
 <div class="grid gap-2">
     <h2 class="pb-2 text-xl text-center font-bold">cards</h2>
-    <div hx-get="/cards" hx-swap="outerHTML" hx-trigger="load">loading cards...</div>
+        {% let cards = deck.cards %}
+        {% let deck_id = deck.id %}
+        {% include "cards.html" %}
+    <button class="w-72 mx-auto p-1 bg-black text-white rounded">study</button>
 </div>

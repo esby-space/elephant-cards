@@ -1,13 +1,12 @@
-<form id={{ "card-{}"|format(card.id) }}
+<form id='{{ "card-{}"|format(card.id) }}'
     class="group relative flex flex-col justify-evenly aspect-[5/3] p-4 shadow shadow-gray-400 rounded-lg">
     <input value="{{ card.front }}" type="text" name="front" class="p-1 border rounded text-lg text-center font-bold">
     <input value="{{ card.back }}" type="text" name="back" class="p-1 border rounded text-center">
 
     <div class="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition">
-        <span hx-put={{ "/cards/{}"|format(card.id) }} hx-target={{ "#card-{}"|format(card.id) }} hx-swap="outerHTML"
-            class="material-symbols-rounded cursor-pointer hover:text-green-500">done</span>
-        <span hx-get={{ "/cards/{}"|format(card.id) }} hx-target={{ "#card-{}"|format(card.id) }} hx-swap="outerHTML"
-            class="material-symbols-rounded cursor-pointer hover:text-red-500">close</span>
+        <span hx-put='{{ "/decks/{}/cards/{}"|format(deck_id, card.id) }}' hx-target='{{ "#card-{}"|format(card.id) }}'
+            hx-swap="outerHTML" class="material-symbols-rounded cursor-pointer hover:text-green-500">done</span>
+        <span hx-get='{{ "/decks/{}/cards/{}"|format(deck_id, card.id) }}' hx-target='{{ "#card-{}"|format(card.id) }}'
+            hx-swap="outerHTML" class="material-symbols-rounded cursor-pointer hover:text-red-500">close</span>
     </div>
 </form>
-
