@@ -9,6 +9,12 @@ pub struct CardTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "edit_card.html")]
+pub struct EditCardTemplate {
+    pub card: Card
+}
+
+#[derive(Template)]
 #[template(path = "cards.html")]
 pub struct CardsTemplate {
     pub cards: Vec<Card>

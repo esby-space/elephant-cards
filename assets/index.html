@@ -6,6 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
     <script src="https://unpkg.com/htmx.org@1.9.9"></script>
     <script src="https://cdn.twind.style" crossorigin></script>
 </head>
@@ -15,7 +16,7 @@
 
     <div class="grid gap-2">
         <h2 class="text-xl text-center font-bold">create new card</h2>
-        <form hx-post="/cards" hx-target="#cards" hx-swap="beforeend" class="grid grid-cols-3 gap-2 max-w-max mx-auto">
+        <form hx-post="/cards" hx-target="#cards" hx-swap="beforeend" hx-on::after-request="this.reset()" class="grid grid-cols-3 gap-2 max-w-max mx-auto">
             <label for="front" class="text-right">front text</label>
             <input id="front" type="text" name="front" class="col-span-2 p-1 border rounded">
             <label for="back" class="text-right">back</label>
@@ -26,7 +27,7 @@
 
     <div class="grid gap-2">
         <h2 class="pb-2 text-xl text-center font-bold">cards</h2>
-        <div hx-get="/cards" hx-swap="innerHTML" hx-trigger="load">loading cards...</div>
+        <div hx-get="/cards" hx-swap="outerHTML" hx-trigger="load">loading cards...</div>
     </div>
 </body>
 

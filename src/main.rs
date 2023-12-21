@@ -3,7 +3,7 @@ use axum::{
     routing::get,
     Router, Form,
 };
-use templates::{CardTemplate, CardsTemplate};
+use templates::{CardTemplate, CardsTemplate, EditCardTemplate};
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 use serde::Deserialize;
@@ -40,7 +40,8 @@ async fn main() {
     let app = Router::new()
         .nest_service("/", ServeDir::new("assets"))
         .route("/cards", get(cards).post(create_card))
-        .route("/card/:id", get(card))
+        .route("/card/:id", get(card).delete(delete_card).put(edit_card))
+        .route("/card/:id/edit", get(edit_card_menu))
         .with_state(initial_cards);
 
     let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -76,5 +77,29 @@ async fn create_card(State(cards): State<Cards>, Form(card): Form<NewCard>) -> C
     cards.push(card);
     let card = cards.last().unwrap().clone();
     CardTemplate { card }
+}
+
+async fn edit_card_menu(State(cards): State<Cards>, Path(id): Path<u32>) -> EditCardTemplate {
+    let cards = cards.unwrap();
+    let card = cards.iter().find(|card| card.id == id).unwrap().clone();
+    EditCardTemplate { card }
+}
+
+async fn edit_card(State(cards): State<Cards>, Path(id): Path<u32>, Form(card): Form<NewCard>) -> CardTemplate {
+    let mut cards = cards.unwrap();
+    let position = cards.iter().position(|card| card.id == id).unwrap();
+
+    let old_card = cards.get_mut(position).unwrap();
+    old_card.front = card.front;
+    old_card.back = card.back;
+
+    let card = cards.get(position).unwrap().clone();
+    CardTemplate { card }
+}
+
+async fn delete_card(State(cards): State<Cards>, Path(id): Path<u32>) {
+    let mut cards = cards.unwrap();
+    let position = cards.iter().position(|card| card.id == id).unwrap();
+    cards.remove(position);
 }
 
