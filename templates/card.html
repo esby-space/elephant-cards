@@ -3,12 +3,11 @@
     <p class="text-lg text-center font-bold">{{ card.front }}</p>
     <p class="text-center">{{ card.back }}</p>
 
-    <div class="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition">
+    <div hx-target='{{ "#card-{}"|format(card.id) }}'
+        hx-swap="outerHTML" class="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition">
         <span hx-get='{{ "/decks/{}/cards/{}/edit"|format(deck_id, card.id) }}'
-            hx-target='{{ "#card-{}"|format(card.id) }}' hx-swap="outerHTML"
             class="material-symbols-rounded cursor-pointer hover:text-sky-500 transition">edit</span>
         <span hx-delete='{{ "/decks/{}/cards/{}"|format(deck_id, card.id) }}'
-            hx-target='{{ "#card-{}"|format(card.id) }}' hx-swap="outerHTML"
             class="material-symbols-rounded cursor-pointer hover:text-red-500 transition">delete</span>
     </div>
 </div>

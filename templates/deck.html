@@ -2,8 +2,8 @@
 
 <div class="grid gap-2">
     <h2 class="text-xl text-center font-bold">create new card</h2>
-    <form hx-post='{{ "/decks/{}/cards"|format(deck.id) }}' hx-target="#cards" hx-swap="beforeend" hx-on::after-request="this.reset()"
-        class="grid grid-cols-3 gap-2 max-w-max mx-auto">
+    <form hx-post='{{ "/decks/{}/cards"|format(deck.id) }}' hx-target="#cards" hx-swap="beforeend"
+        hx-on::after-request="this.reset()" class="grid grid-cols-3 gap-2 max-w-max mx-auto">
         <label for="front" class="text-right">front text</label>
         <input id="front" type="text" name="front" class="col-span-2 p-1 border rounded">
         <label for="back" class="text-right">back</label>
