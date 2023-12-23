@@ -1,21 +1,42 @@
-<h1 class="text-3xl text-center font-bold">{{ deck.name }}</h1>
+<!DOCTYPE html>
+<html lang="en">
 
-<div class="grid gap-2">
-    <h2 class="text-xl text-center font-bold">create new card</h2>
-    <form hx-post='{{ "/decks/{}/cards"|format(deck.id) }}' hx-target="#cards" hx-swap="beforeend"
-        hx-on::after-request="this.reset()" class="grid grid-cols-3 gap-2 max-w-max mx-auto">
-        <label for="front" class="text-right">front text</label>
-        <input id="front" type="text" name="front" class="col-span-2 p-1 border rounded">
-        <label for="back" class="text-right">back</label>
-        <input id="black" type="text" name="back" class="col-span-2 p-1 border rounded">
-        <button class="col-start-2 p-1 bg-black text-white rounded">create!</button>
-    </form>
-</div>
+<head>
+    <title>esby is confused</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<div class="grid gap-2">
-    <h2 class="pb-2 text-xl text-center font-bold">cards</h2>
-        {% let cards = deck.cards %}
-        {% let deck_id = deck.id %}
-        {% include "cards.html" %}
-    <button class="w-72 mx-auto p-1 bg-black text-white rounded">study</button>
-</div>
+    <link rel="stylesheet" href="/lib/material_symbols.css" />
+    <script src="/lib/htmx.min.js"></script>
+    <script src="/lib/cdn.twind.style.js" crossorigin></script>
+</head>
+
+<body hx-boost="true" class="min-h-screen grid place-content-center gap-8">
+
+    <h1 class="text-3xl text-center font-bold">{{ deck.name }}</h1>
+
+    <div class="grid gap-2">
+        <h2 class="text-xl text-center font-bold">create new card</h2>
+        <form hx-post='{{ "/decks/{}/cards"|format(deck.id) }}' hx-target="#cards" hx-swap="beforeend"
+            hx-on::after-request="this.reset()" class="grid grid-cols-3 gap-2 max-w-max mx-auto">
+            <label for="front" class="text-right">front text</label>
+            <input id="front" type="text" name="front" class="col-span-2 p-1 border rounded">
+            <label for="back" class="text-right">back</label>
+            <input id="black" type="text" name="back" class="col-span-2 p-1 border rounded">
+            <button class="col-start-2 p-1 bg-black text-white rounded">create!</button>
+        </form>
+    </div>
+
+    <div class="grid gap-2">
+        <h2 class="pb-2 text-xl text-center font-bold">cards</h2>
+            {% let deck_id = deck.id %}
+            <div id="cards" class="grid grid-cols-3 gap-4">
+                {% for card in deck.cards %}
+                    {% include "card.html" %}
+                {% endfor %}
+            </div>
+        <button class="w-72 mx-auto p-1 bg-black text-white rounded">study</button>
+    </div>
+</body>
+
+</html>

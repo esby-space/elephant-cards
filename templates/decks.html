@@ -1,9 +1,0 @@
-<div id="#decks">
-    {% for deck in decks %}
-        <div hx-get='{{ "/decks/{}"|format(deck.id) }}' hx-target="body" hx-swap="innerHTML" hx-push-url="true"
-            class="flex flex-col justify-evenly aspect-[5/3] shadow shadow-gray-400 rounded-lg cursor-pointer">
-            <p class="text-lg text-center font-bold">{{ deck.name }}</p>
-            <p class="text-center">{{ deck.cards.len() }} cards in deck</p>
-        </div>
-    {% endfor %}
-</div>
