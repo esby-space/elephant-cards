@@ -1,5 +1,9 @@
-use std::{result, fmt::Display, error};
-use axum::{response::{IntoResponse, Response}, http::StatusCode};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
+use std::{error, fmt::Display, result};
+use tracing::warn;
 
 pub(crate) type Result<T> = result::Result<T, Error>;
 
@@ -8,13 +12,15 @@ pub(crate) enum Error {
     // user errors
     DeckNotFound,
     CardNotFound,
+    CardDeleted,
 
     // model errors
-    MutexLockFail
+    MutexLockFail,
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
+        warn!("{:<12} - {self:?}", "ERROR");
         let mut response = StatusCode::INTERNAL_SERVER_ERROR.into_response();
         response.extensions_mut().insert(self);
         response
@@ -27,4 +33,3 @@ impl Display for Error {
         write!(f, "{self:?}")
     }
 }
-

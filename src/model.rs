@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
-use std::sync::{Arc, Mutex, MutexGuard};
-
 use serde::Deserialize;
+use std::sync::{Arc, Mutex, MutexGuard};
+use tracing::info;
 
 #[derive(Clone)]
 pub struct Model(Arc<Mutex<Vec<Deck>>>);
@@ -10,7 +10,7 @@ pub struct Model(Arc<Mutex<Vec<Deck>>>);
 pub struct Deck {
     pub id: u32,
     pub name: String,
-    pub cards: Vec<Card>,
+    pub cards: Vec<Option<Card>>,
 }
 
 #[derive(Clone)]
@@ -32,84 +32,108 @@ impl Model {
 
 impl Model {
     pub fn select_decks(&self) -> Result<Vec<Deck>> {
+        info!("{:<12} - select_decks", "MODEL");
         Ok(self.guard()?.to_vec())
     }
 
     pub fn select_deck(&self, deck_id: u32) -> Result<Deck> {
+        info!("{:<12} - select_deck", "MODEL");
         let decks = self.guard()?;
         let deck = decks
             .iter()
             .find(|deck| deck.id == deck_id)
             .ok_or(Error::DeckNotFound)?;
+
         Ok(deck.clone())
     }
 
     pub fn select_cards(&self, deck_id: u32) -> Result<Vec<Card>> {
-        Ok(self.select_deck(deck_id)?.cards)
-    }
-
-    pub fn select_card(&self, deck_id: u32, card_id: u32) -> Result<Card> {
+        info!("{:<12} - select_cards", "MODEL");
         let decks = self.guard()?;
         let deck = decks
             .iter()
             .find(|deck| deck.id == deck_id)
             .ok_or(Error::DeckNotFound)?;
+
+        let cards = deck.cards.iter().filter_map(|card| card.clone()).collect();
+
+        Ok(cards)
+    }
+
+    pub fn select_card(&self, deck_id: u32, card_id: u32) -> Result<Card> {
+        info!("{:<12} - select_card", "MODEL");
+        let decks = self.guard()?;
+        let deck = decks
+            .iter()
+            .find(|deck| deck.id == deck_id)
+            .ok_or(Error::DeckNotFound)?;
+
         let card = deck
             .cards
-            .iter()
-            .find(|card| card.id == card_id)
-            .ok_or(Error::CardNotFound)?;
-        Ok(card.clone())
+            .get(card_id as usize)
+            .cloned()
+            .ok_or(Error::CardNotFound)?
+            .ok_or(Error::CardDeleted)?;
+
+        Ok(card)
     }
 
     pub fn insert_card(&self, card: CardPayload, deck_id: u32) -> Result<Card> {
+        info!("{:<12} - insert_card", "MODEL");
         let mut decks = self.guard()?;
         let deck = decks
             .iter_mut()
             .find(|deck| deck.id == deck_id)
             .ok_or(Error::DeckNotFound)?;
+
         let card = Card {
             id: deck.cards.len() as u32,
             front: card.front,
             back: card.back,
         };
 
-        deck.cards.push(card.clone());
+        deck.cards.push(Some(card.clone()));
         Ok(card)
     }
 
     pub fn edit_card(&self, card: CardPayload, card_id: u32, deck_id: u32) -> Result<Card> {
+        info!("{:<12} - edit_card", "MODEL");
         let mut decks = self.guard()?;
         let deck = decks
             .iter_mut()
             .find(|deck| deck.id == deck_id)
             .ok_or(Error::DeckNotFound)?;
-        let position = deck
+
+        let old_card = deck
             .cards
-            .iter()
-            .position(|card| card.id == card_id)
+            .get_mut(card_id as usize)
             .ok_or(Error::CardNotFound)?;
 
-        let old_card = deck.cards.get_mut(position).ok_or(Error::CardNotFound)?;
-        old_card.front = card.front;
-        old_card.back = card.back;
+        *old_card = Some(Card {
+            front: card.front,
+            back: card.back,
+            id: card_id,
+        });
 
-        Ok(old_card.clone())
+        Ok(old_card.clone().unwrap())
     }
 
     pub fn delete_card(&self, card_id: u32, deck_id: u32) -> Result<Card> {
+        info!("{:<12} - delete_card", "MODEL");
         let mut decks = self.guard()?;
         let deck = decks
             .iter_mut()
             .find(|deck| deck.id == deck_id)
-            .ok_or(Error::CardNotFound)?;
-        let position = deck
-            .cards
-            .iter()
-            .position(|card| card.id == card_id)
-            .unwrap();
+            .ok_or(Error::DeckNotFound)?;
 
-        Ok(deck.cards.remove(position))
+        let old_card = deck
+            .cards
+            .get_mut(card_id as usize)
+            .ok_or(Error::CardNotFound)?
+            .take()
+            .ok_or(Error::CardDeleted)?;
+
+        Ok(old_card.clone())
     }
 }
 

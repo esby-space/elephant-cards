@@ -3,6 +3,8 @@
     <p class="text-lg text-center font-bold">{{ card.front }}</p>
     <p class="text-center">{{ card.back }}</p>
 
+    <p class="absolute bottom-4 left-4 text-gray-400">{{ card.id }}</p>
+
     <div hx-target='{{ "#card-{}"|format(card.id) }}'
         hx-swap="outerHTML" class="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition">
         <span hx-get='{{ "/decks/{}/cards/{}/edit"|format(deck_id, card.id) }}'

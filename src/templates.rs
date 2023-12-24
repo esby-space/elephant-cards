@@ -3,14 +3,16 @@ use crate::model::{Card, Deck};
 
 #[derive(Template)]
 #[template(path = "index.html")]
-pub struct HomeTemplate {
+pub struct DecksTemplate {
     pub decks: Vec<Deck>
 }
 
 #[derive(Template)]
 #[template(path = "deck.html")]
 pub struct DeckTemplate {
-    pub deck: Deck
+    pub id: u32,
+    pub name: String,
+    pub cards: Vec<Card>
 }
 
 #[derive(Template)]
