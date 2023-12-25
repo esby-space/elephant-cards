@@ -18,19 +18,16 @@ pub fn routes() -> Router<Model> {
 }
 
 async fn show_decks(State(model): State<Model>) -> Result<DecksTemplate> {
+    info!("{:<12} - show_decks", "HANDLER");
     Ok(DecksTemplate {
-        decks: model.select_decks()?,
+        decks: model.select_decks().await?,
     })
 }
 
-async fn show_deck(State(model): State<Model>, Path(id): Path<u32>) -> Result<DeckTemplate> {
-    info!("{:<12} - list_deck", "HANDLER");
-    let deck = model.select_deck(id)?;
-    let cards = model.select_cards(id)?;
-
+async fn show_deck(State(model): State<Model>, Path(id): Path<i64>) -> Result<DeckTemplate> {
+    info!("{:<12} - show_deck", "HANDLER");
     Ok(DeckTemplate {
-        id,
-        name: deck.name,
-        cards,
+        deck: model.select_deck(id).await?
     })
 }
+

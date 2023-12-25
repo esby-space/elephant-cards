@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS cards(
+    id INTEGER PRIMARY KEY NOT NULL,
+    front TEXT NOT NULL,
+    back TEXT NOT NULL,
+    deckID INTEGER REFERENCES decks(id) NOT NULL
+);
+

@@ -1,4 +1,4 @@
-use axum::{Router, middleware, response::Response};
+use axum::{Router, middleware, response::Response, routing::get};
 use tower_http::services::ServeDir;
 
 use crate::model::Model;

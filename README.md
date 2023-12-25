@@ -14,3 +14,13 @@ a worse [Anki](https://apps.ankiweb.net/) clone.
 
 SATHA?
 
+## starting
+
+```
+cargo install sqlx-cli
+export DATABASE_URL="sqlite:db/cards.db"
+sqlx database create
+sqlx migrate run
+cargo run
+```
+

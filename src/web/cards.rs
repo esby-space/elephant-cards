@@ -20,55 +20,56 @@ pub fn routes() -> Router<Model> {
 
 async fn show_card(
     State(model): State<Model>,
-    Path((deck_id, card_id)): Path<(u32, u32)>,
+    Path((deck_id, card_id)): Path<(i64, i64)>,
 ) -> Result<CardTemplate> {
-    info!("{:<12} - list_card", "HANDLER");
+    info!("{:<12} - show_card", "HANDLER");
     Ok(CardTemplate {
-        card: model.select_card(deck_id, card_id)?,
+        card: model.select_card(card_id).await?,
         deck_id,
     })
 }
 
 async fn create_card(
     State(model): State<Model>,
-    Path(deck_id): Path<u32>,
+    Path(deck_id): Path<i64>,
     Form(card): Form<CardPayload>,
 ) -> Result<CardTemplate> {
     info!("{:<12} - create_card", "HANDLER");
     Ok(CardTemplate {
-        card: model.insert_card(card, deck_id)?,
+        card: model.insert_card(card, deck_id).await?,
         deck_id,
     })
 }
 
 async fn edit_card_menu(
     State(model): State<Model>,
-    Path((deck_id, card_id)): Path<(u32, u32)>,
+    Path((deck_id, card_id)): Path<(i64, i64)>,
 ) -> Result<EditCardTemplate> {
     info!("{:<12} - edit_card_menu", "HANDLER");
     Ok(EditCardTemplate {
-        card: model.select_card(deck_id, card_id)?,
+        card: model.select_card(card_id).await?,
         deck_id,
     })
 }
 
 async fn edit_card(
     State(model): State<Model>,
-    Path((deck_id, card_id)): Path<(u32, u32)>,
+    Path((deck_id, card_id)): Path<(i64, i64)>,
     Form(card): Form<CardPayload>,
 ) -> Result<CardTemplate> {
     info!("{:<12} - edit_card", "HANDLER");
     Ok(CardTemplate {
-        card: model.edit_card(card, card_id, deck_id)?,
+        card: model.edit_card(card, card_id).await?,
         deck_id,
     })
 }
 
 async fn delete_card(
     State(model): State<Model>,
-    Path((deck_id, card_id)): Path<(u32, u32)>,
+    Path((_, card_id)): Path<(i64, i64)>,
 ) -> Result<()> {
     info!("{:<12} - delete_card", "HANDLER");
-    model.delete_card(card_id, deck_id)?;
+    model.delete_card(card_id).await?;
     Ok(())
 }
+

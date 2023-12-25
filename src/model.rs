@@ -1,139 +1,172 @@
 use crate::error::{Error, Result};
 use serde::Deserialize;
-use std::sync::{Arc, Mutex, MutexGuard};
+use sqlx::{prelude::FromRow, SqlitePool};
 use tracing::info;
 
 #[derive(Clone)]
-pub struct Model(Arc<Mutex<Vec<Deck>>>);
-
-#[derive(Clone)]
-pub struct Deck {
-    pub id: u32,
-    pub name: String,
-    pub cards: Vec<Option<Card>>,
+pub struct Model {
+    connection: SqlitePool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+pub struct Deck {
+    pub id: i64,
+    pub name: String,
+    pub cards: Vec<Card>,
+}
+
+#[derive(FromRow)]
+struct ID(i64);
+
+#[derive(FromRow)]
+pub struct PartialDeck {
+    id: i64,
+    name: String,
+}
+
+#[derive(Clone, Debug, FromRow)]
 pub struct Card {
-    pub id: u32,
+    pub id: i64,
     pub front: String,
     pub back: String,
 }
 
 impl Model {
-    pub fn new(decks: Vec<Deck>) -> Self {
-        Self(Arc::new(Mutex::new(decks)))
-    }
-
-    fn guard(&self) -> Result<MutexGuard<Vec<Deck>>> {
-        Ok(self.0.lock().map_err(|_| Error::MutexLockFail)?)
+    pub async fn new(url: String) -> Model {
+        let connection = SqlitePool::connect(&url)
+            .await
+            .expect("failed starting database connection!");
+        Model { connection }
     }
 }
 
 impl Model {
-    pub fn select_decks(&self) -> Result<Vec<Deck>> {
+    pub async fn select_decks(&self) -> Result<Vec<Deck>> {
         info!("{:<12} - select_decks", "MODEL");
-        Ok(self.guard()?.to_vec())
+        let ids: Vec<ID> = sqlx::query_as("SELECT id FROM decks")
+            .fetch_all(&self.connection)
+            .await
+            .map_err(|_| Error::DatabaseFailure)?;
+
+        let mut decks = Vec::new();
+        for ID(id) in ids {
+            let deck = self.select_deck(id).await?;
+            decks.push(deck);
+        }
+
+        Ok(decks)
     }
 
-    pub fn select_deck(&self, deck_id: u32) -> Result<Deck> {
+    pub async fn select_deck(&self, deck_id: i64) -> Result<Deck> {
         info!("{:<12} - select_deck", "MODEL");
-        let decks = self.guard()?;
-        let deck = decks
-            .iter()
-            .find(|deck| deck.id == deck_id)
-            .ok_or(Error::DeckNotFound)?;
 
-        Ok(deck.clone())
+        let cards = self.select_cards(deck_id).await?;
+        let deck: PartialDeck = sqlx::query_as(
+            r#"
+                SELECT id, name FROM decks
+                WHERE id = ?
+            "#,
+        )
+        .bind(deck_id)
+        .fetch_one(&self.connection)
+        .await
+        .map_err(|_| Error::DatabaseFailure)?;
+
+        Ok(Deck {
+            id: deck.id,
+            name: deck.name,
+            cards,
+        })
     }
 
-    pub fn select_cards(&self, deck_id: u32) -> Result<Vec<Card>> {
+    pub async fn select_cards(&self, deck_id: i64) -> Result<Vec<Card>> {
         info!("{:<12} - select_cards", "MODEL");
-        let decks = self.guard()?;
-        let deck = decks
-            .iter()
-            .find(|deck| deck.id == deck_id)
-            .ok_or(Error::DeckNotFound)?;
-
-        let cards = deck.cards.iter().filter_map(|card| card.clone()).collect();
+        let cards: Vec<Card> = sqlx::query_as(
+            r#"
+                SELECT id, front, back FROM cards
+                WHERE cards.deckID = ?
+                ORDER BY id
+            "#,
+        )
+        .bind(deck_id)
+        .fetch_all(&self.connection)
+        .await
+        .map_err(|_| Error::DatabaseFailure)?;
 
         Ok(cards)
     }
 
-    pub fn select_card(&self, deck_id: u32, card_id: u32) -> Result<Card> {
+    pub async fn select_card(&self, card_id: i64) -> Result<Card> {
         info!("{:<12} - select_card", "MODEL");
-        let decks = self.guard()?;
-        let deck = decks
-            .iter()
-            .find(|deck| deck.id == deck_id)
-            .ok_or(Error::DeckNotFound)?;
-
-        let card = deck
-            .cards
-            .get(card_id as usize)
-            .cloned()
-            .ok_or(Error::CardNotFound)?
-            .ok_or(Error::CardDeleted)?;
+        let card: Card = sqlx::query_as(
+            r#"
+                SELECT id, front, back FROM cards
+                WHERE cards.id = ?
+            "#,
+        )
+        .bind(card_id)
+        .fetch_one(&self.connection)
+        .await
+        .map_err(|_| Error::DatabaseFailure)?;
 
         Ok(card)
     }
 
-    pub fn insert_card(&self, card: CardPayload, deck_id: u32) -> Result<Card> {
+    pub async fn insert_card(&self, card: CardPayload, deck_id: i64) -> Result<Card> {
         info!("{:<12} - insert_card", "MODEL");
-        let mut decks = self.guard()?;
-        let deck = decks
-            .iter_mut()
-            .find(|deck| deck.id == deck_id)
-            .ok_or(Error::DeckNotFound)?;
+        let id = sqlx::query(
+            r#"
+                INSERT INTO cards (front, back, deckID)
+                VALUES (?, ?, ?)
+            "#,
+        )
+        .bind(card.front)
+        .bind(card.back)
+        .bind(deck_id)
+        .execute(&self.connection)
+        .await
+        .map_err(|_| Error::DatabaseFailure)?
+        .last_insert_rowid();
 
-        let card = Card {
-            id: deck.cards.len() as u32,
-            front: card.front,
-            back: card.back,
-        };
-
-        deck.cards.push(Some(card.clone()));
+        let card = self.select_card(id).await?;
         Ok(card)
     }
 
-    pub fn edit_card(&self, card: CardPayload, card_id: u32, deck_id: u32) -> Result<Card> {
+    pub async fn edit_card(&self, card: CardPayload, card_id: i64) -> Result<Card> {
         info!("{:<12} - edit_card", "MODEL");
-        let mut decks = self.guard()?;
-        let deck = decks
-            .iter_mut()
-            .find(|deck| deck.id == deck_id)
-            .ok_or(Error::DeckNotFound)?;
+        sqlx::query(
+            r#"
+                UPDATE cards
+                SET front = ?,
+                    back = ?
+                WHERE id = ?
+            "#,
+        )
+        .bind(card.front)
+        .bind(card.back)
+        .bind(card_id)
+        .execute(&self.connection)
+        .await
+        .map_err(|_| Error::DatabaseFailure)?;
 
-        let old_card = deck
-            .cards
-            .get_mut(card_id as usize)
-            .ok_or(Error::CardNotFound)?;
-
-        *old_card = Some(Card {
-            front: card.front,
-            back: card.back,
-            id: card_id,
-        });
-
-        Ok(old_card.clone().unwrap())
+        let card = self.select_card(card_id).await?;
+        Ok(card)
     }
 
-    pub fn delete_card(&self, card_id: u32, deck_id: u32) -> Result<Card> {
+    pub async fn delete_card(&self, card_id: i64) -> Result<()> {
         info!("{:<12} - delete_card", "MODEL");
-        let mut decks = self.guard()?;
-        let deck = decks
-            .iter_mut()
-            .find(|deck| deck.id == deck_id)
-            .ok_or(Error::DeckNotFound)?;
+        sqlx::query(
+            r#"
+                DELETE FROM cards
+                WHERE cards.id = ?
+            "#,
+        )
+        .bind(card_id)
+        .execute(&self.connection)
+        .await
+        .map_err(|_| Error::DatabaseFailure)?;
 
-        let old_card = deck
-            .cards
-            .get_mut(card_id as usize)
-            .ok_or(Error::CardNotFound)?
-            .take()
-            .ok_or(Error::CardDeleted)?;
-
-        Ok(old_card.clone())
+        Ok(())
     }
 }
 
@@ -142,3 +175,4 @@ pub struct CardPayload {
     front: String,
     back: String,
 }
+

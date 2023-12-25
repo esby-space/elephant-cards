@@ -13,11 +13,11 @@
 
 <body hx-boost="true" class="min-h-screen grid place-content-center gap-8">
 
-    <h1 class="text-3xl text-center font-bold">{{ name }}</h1>
+    <h1 class="text-3xl text-center font-bold">{{ deck.name }}</h1>
 
     <div class="grid gap-2">
         <h2 class="text-xl text-center font-bold">create new card</h2>
-        <form hx-post='{{ "/decks/{}/cards"|format(id) }}' hx-target="#cards" hx-swap="beforeend"
+        <form hx-post='{{ "/decks/{}/cards"|format(deck.id) }}' hx-target="#cards" hx-swap="beforeend"
             hx-on::after-request="this.reset()" class="grid grid-cols-3 gap-2 max-w-max mx-auto">
             <label for="front" class="text-right">front text</label>
             <input id="front" type="text" name="front" class="col-span-2 p-1 border rounded">
@@ -29,9 +29,9 @@
 
     <div class="grid gap-2">
         <h2 class="pb-2 text-xl text-center font-bold">cards</h2>
-            {% let deck_id = id %}
+            {% let deck_id = deck.id %}
             <div id="cards" class="grid grid-cols-3 gap-4">
-                {% for card in cards %}
+                {% for card in deck.cards %}
                     {% include "card.html" %}
                 {% endfor %}
             </div>
