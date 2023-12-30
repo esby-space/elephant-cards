@@ -2,6 +2,10 @@ CREATE TABLE IF NOT EXISTS cards(
     id INTEGER PRIMARY KEY NOT NULL,
     front TEXT NOT NULL,
     back TEXT NOT NULL,
-    deckID INTEGER REFERENCES decks(id) NOT NULL
+
+    deckID INTEGER NOT NULL,
+    CONSTRAINT deck_key 
+        FOREIGN KEY (deckID) REFERENCES decks(id)
+        ON DELETE CASCADE
 );
 

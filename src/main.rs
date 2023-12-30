@@ -4,7 +4,6 @@ use tracing::info;
 
 mod error;
 mod model;
-mod templates;
 mod web;
 
 use model::Model;

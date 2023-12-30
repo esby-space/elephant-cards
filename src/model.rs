@@ -1,4 +1,4 @@
-use crate::error::{Error, Result};
+use crate::error::Result;
 use serde::Deserialize;
 use sqlx::{prelude::FromRow, SqlitePool};
 use tracing::info;
@@ -8,20 +8,10 @@ pub struct Model {
     connection: SqlitePool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, FromRow)]
 pub struct Deck {
     pub id: i64,
     pub name: String,
-    pub cards: Vec<Card>,
-}
-
-#[derive(FromRow)]
-struct ID(i64);
-
-#[derive(FromRow)]
-pub struct PartialDeck {
-    id: i64,
-    name: String,
 }
 
 #[derive(Clone, Debug, FromRow)]
@@ -29,6 +19,17 @@ pub struct Card {
     pub id: i64,
     pub front: String,
     pub back: String,
+}
+
+#[derive(Deserialize)]
+pub struct CardPayload {
+    front: String,
+    back: String,
+}
+
+#[derive(Deserialize)]
+pub struct DeckPayload {
+    name: String,
 }
 
 impl Model {
@@ -43,25 +44,16 @@ impl Model {
 impl Model {
     pub async fn select_decks(&self) -> Result<Vec<Deck>> {
         info!("{:<12} - select_decks", "MODEL");
-        let ids: Vec<ID> = sqlx::query_as("SELECT id FROM decks")
+        let decks: Vec<Deck> = sqlx::query_as("SELECT id, name FROM decks")
             .fetch_all(&self.connection)
-            .await
-            .map_err(|_| Error::DatabaseFailure)?;
-
-        let mut decks = Vec::new();
-        for ID(id) in ids {
-            let deck = self.select_deck(id).await?;
-            decks.push(deck);
-        }
+            .await?;
 
         Ok(decks)
     }
 
     pub async fn select_deck(&self, deck_id: i64) -> Result<Deck> {
         info!("{:<12} - select_deck", "MODEL");
-
-        let cards = self.select_cards(deck_id).await?;
-        let deck: PartialDeck = sqlx::query_as(
+        let deck: Deck = sqlx::query_as(
             r#"
                 SELECT id, name FROM decks
                 WHERE id = ?
@@ -69,14 +61,64 @@ impl Model {
         )
         .bind(deck_id)
         .fetch_one(&self.connection)
-        .await
-        .map_err(|_| Error::DatabaseFailure)?;
+        .await?;
 
         Ok(Deck {
             id: deck.id,
             name: deck.name,
-            cards,
         })
+    }
+
+    pub async fn insert_deck(&self, deck: DeckPayload) -> Result<Deck> {
+        info!("{:<12} - insert_deck", "MODEL");
+        let id = sqlx::query(
+            r#"
+                INSERT INTO decks (name)
+                VALUES (?);
+            "#,
+        )
+        .bind(deck.name)
+        .execute(&self.connection)
+        .await?
+        .last_insert_rowid();
+
+        let deck = self.select_deck(id).await?;
+        Ok(deck)
+    }
+
+    pub async fn edit_deck(&self, deck: DeckPayload, deck_id: i64) -> Result<Deck> {
+        info!("{:<12} - edit_deck", "MODEL");
+        let deck: Deck = sqlx::query_as(
+            r#"
+                UPDATE decks SET name = ?
+                WHERE id = ?;
+
+                SELECT id, name FROM decks
+                WHERE id = ?
+            "#
+        )
+        .bind(deck.name)
+        .bind(deck_id)
+        .bind(deck_id)
+        .fetch_one(&self.connection)
+        .await?;
+
+        Ok(deck)
+    }
+
+    pub async fn delete_deck(&self, deck_id: i64) -> Result<()> {
+        info!("{:<12} - delete_deck", "MODEL");
+        sqlx::query(
+            r#"
+                DELETE FROM decks
+                WHERE decks.id = ?
+            "#,
+        )
+        .bind(deck_id)
+        .execute(&self.connection)
+        .await?;
+
+        Ok(())
     }
 
     pub async fn select_cards(&self, deck_id: i64) -> Result<Vec<Card>> {
@@ -90,8 +132,7 @@ impl Model {
         )
         .bind(deck_id)
         .fetch_all(&self.connection)
-        .await
-        .map_err(|_| Error::DatabaseFailure)?;
+        .await?;
 
         Ok(cards)
     }
@@ -106,8 +147,7 @@ impl Model {
         )
         .bind(card_id)
         .fetch_one(&self.connection)
-        .await
-        .map_err(|_| Error::DatabaseFailure)?;
+        .await?;
 
         Ok(card)
     }
@@ -124,8 +164,7 @@ impl Model {
         .bind(card.back)
         .bind(deck_id)
         .execute(&self.connection)
-        .await
-        .map_err(|_| Error::DatabaseFailure)?
+        .await?
         .last_insert_rowid();
 
         let card = self.select_card(id).await?;
@@ -134,22 +173,22 @@ impl Model {
 
     pub async fn edit_card(&self, card: CardPayload, card_id: i64) -> Result<Card> {
         info!("{:<12} - edit_card", "MODEL");
-        sqlx::query(
+        let card: Card = sqlx::query_as(
             r#"
-                UPDATE cards
-                SET front = ?,
-                    back = ?
-                WHERE id = ?
+                UPDATE cards SET front = ?, back = ?
+                WHERE id = ?;
+
+                SELECT id, front, back FROM cards
+                WHERE id = ?;
             "#,
         )
         .bind(card.front)
         .bind(card.back)
         .bind(card_id)
-        .execute(&self.connection)
-        .await
-        .map_err(|_| Error::DatabaseFailure)?;
+        .bind(card_id)
+        .fetch_one(&self.connection)
+        .await?;
 
-        let card = self.select_card(card_id).await?;
         Ok(card)
     }
 
@@ -163,16 +202,8 @@ impl Model {
         )
         .bind(card_id)
         .execute(&self.connection)
-        .await
-        .map_err(|_| Error::DatabaseFailure)?;
+        .await?;
 
         Ok(())
     }
 }
-
-#[derive(Deserialize)]
-pub struct CardPayload {
-    front: String,
-    back: String,
-}
-

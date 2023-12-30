@@ -9,7 +9,6 @@ a worse [Anki](https://apps.ankiweb.net/) clone.
     - TailwindCSS
 - backend
     - Axum
-    - Askama
     - SQLX
 
 SATHA?
@@ -17,10 +16,10 @@ SATHA?
 ## starting
 
 ```
-cargo install sqlx-cli
 export DATABASE_URL="sqlite:db/cards.db"
-sqlx database create
-sqlx migrate run
+mkdir db
+cargo sqlx database create
+cargo sqlx migrate run
 cargo run
 ```
 
